@@ -3,9 +3,13 @@
 '''
 
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.admindocs import utils
 from django.shortcuts import render
+from django.utils.translation import ugettext as _
+
 
 from django.conf import settings
+
 from django.db.models.fields import related
 from django.template.loader import get_template
 from django.template import Context
@@ -34,7 +38,15 @@ def dbmodel(request):
         if not model.model_class():
             continue
 
-        model.doc = model.model_class().__doc__
+        doc_ = model.model_class().__doc__
+        title, body, metadata = utils.parse_docstring(doc_)
+        if title:
+            title = utils.parse_rst(title, None, None)
+        if body:
+            body = utils.parse_rst(body, None, None)
+        
+        model.rstdoc = title + body
+        
         
         _id = "%s__%s" % (model.app_label, model.model)
         if _id in excludes:
@@ -43,9 +55,38 @@ def dbmodel(request):
         label = "%s" % (model.model)
         fields = [f for f in model.model_class(). _meta.fields]
         many = [f for f in model.model_class()._meta. many_to_many]
-        if graph_settings.get('show_fields', True):
-            label += "\n%s\n"%("-"*len(model.model))
-            label += "\n".join([str(f.name) for f in fields])
+        # if graph_settings.get('show_fields', True):
+        #     label += "\n%s\n"%("-"*len(model.model))
+        #     label += "\n".join([str(f.name) for f in fields])
+
+        imagesrc = '''
+<?xml version="1.0" standalone="yes"?>
+<svg xmlns="http://www.w3.org/2000/svg">
+  <foreignobject x="10" y="10" width="400" height="500">
+    <body xmlns="http://www.w3.org/1999/xhtml">
+      <table>
+            <tr><td>111</td><td>222</td></tr>
+            <tr><td>111</td><td>222</td></tr>
+            <!-- ... -->
+      </table>
+    </body>
+  </foreignobject>
+  <!-- ... -->
+</svg>
+'''
+
+        imagesrc = '''
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="65">
+            <rect x="0" y="0" width="100%" height="100%" fill="#7890A7" stroke-width="20" stroke="#ffffff" ></rect>
+            <foreignObject x="15" y="10" width="100%" height="100%">
+            <div xmlns="http://www.w3.org/1999/xhtml" style="font-size:40px">
+             <em>I</em> am
+            <span style="color:white; text-shadow:0 0 20px #000000;">
+             HTML in SVG!</span>
+            </div>
+            </foreignObject>
+            </svg>
+'''            
 
         edge_color = {'inherit': 'from'}
 
@@ -89,7 +130,8 @@ def dbmodel(request):
             {
                 'id':    _id,
                 'label': label,
-                'shape': 'box',
+                'imagesrc': imagesrc,
+                'shape': 'image',
                 'group': model.app_label,
                 'title': get_template("dbmodel/dbnode.html").render(
                     Context({'model':model, 'fields':fields,})
