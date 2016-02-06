@@ -1,7 +1,7 @@
 from django.conf.urls import url
 from django.contrib import admin
-from djangodbmodel.views import plate
+from djangodbmodel.views import dbmodel
 
 urlpatterns = [
-    url(r'^$', plate, name='plate'),
+    url(r'^$', dbmodel, name='dbmodel'),
 ]
