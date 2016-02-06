@@ -22,12 +22,16 @@ def dbmodel(request):
     '''
     Generate database model visualization for specified applications
     '''
+    def get_id4model(app_label, model):
+        '''
+         Get id and url for a model
+        '''
+        url = "../models/" + app_label + "." + model + "/"
+        return url
+    
     graph_settings = getattr(settings, 'DBMODEL_SETTINGS', {})
     apps = graph_settings.get('apps', [])
 
-    excludes = ['%s__%s' % (app, model)
-                for app, models in graph_settings.get('exclude', {}).items()
-                for model in models]
     #pylint: disable=E1101 
     models = ContentType.objects.filter(app_label__in=apps)
 
@@ -35,6 +39,8 @@ def dbmodel(request):
     edges = []
 
     for model in models:
+
+        id_ = get_id4model(model.app_label, model.model)        
         if not model.model_class():
             continue
 
@@ -47,11 +53,7 @@ def dbmodel(request):
         
         model.rstdoc = title + body
         
-        
-        _id = "%s__%s" % (model.app_label, model.model)
-        if _id in excludes:
-            continue
-        
+       
         label = "%s" % (model.model)
         fields = [f for f in model.model_class(). _meta.fields]
         many = [f for f in model.model_class()._meta. many_to_many]
@@ -92,9 +94,11 @@ def dbmodel(request):
                 metaref = field_.rel.to._meta
                 if metaref.app_label != model.app_label:
                     edge_color = {'inherit':'both'}
+
                 edge = {
-                        'from': _id,
-                        'to': "%s__%s" % (metaref.app_label, metaref.model_name),
+                        'from': id_,
+                        'to':  get_id4model(metaref.app_label, metaref.model_name),
+                            # "%s__%s" % (metaref.app_label, metaref.model_name),
                         'color': edge_color,
                        }
 
@@ -125,7 +129,7 @@ def dbmodel(request):
 
         nodes.append(
             {
-                'id':    _id,
+                'id':    id_,
                 'label': label,
                 'imagesrc': imagesrc,
                 'shape': 'image',
@@ -133,8 +137,7 @@ def dbmodel(request):
                 'group': model.app_label,
                 'title': get_template("dbmodel/dbnode.html").render(
                     Context({'model':model, 'fields':fields,})
-                    )
-
+                    ),
             }
         )
 
