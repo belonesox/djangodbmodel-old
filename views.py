@@ -16,7 +16,7 @@ from django.template import Context
 import json
 
 #pylint: disable=E1101, C0330 
-#pylint: disable=W0212
+#pylint: disable=W0212, W0612
 
 def dbmodel(request):
     '''
@@ -59,34 +59,31 @@ def dbmodel(request):
         #     label += "\n%s\n"%("-"*len(model.model))
         #     label += "\n".join([str(f.name) for f in fields])
 
-        imagesrc = '''
-<?xml version="1.0" standalone="yes"?>
-<svg xmlns="http://www.w3.org/2000/svg">
-  <foreignobject x="10" y="10" width="400" height="500">
-    <body xmlns="http://www.w3.org/1999/xhtml">
-      <table>
-            <tr><td>111</td><td>222</td></tr>
-            <tr><td>111</td><td>222</td></tr>
-            <!-- ... -->
-      </table>
-    </body>
-  </foreignobject>
-  <!-- ... -->
-</svg>
-'''
+        fields_table = '''
+<th><td><span style="background-color:#eeee00;color:#0000ff;font-size:22px">%s</span></td></th>
+''' % model.model
+
+        for field in fields:
+            color = '#000000'
+            if field.unique:
+                color = '#0000ff'
+            fields_table += '''
+        <tr><td><span style="color:%s;">%s</span></td></tr>
+                ''' % (color, field.name)
+
+        row_height = 14
+        table_height = row_height * (len(fields) + 3) * 1.8
 
         imagesrc = '''
-<svg xmlns="http://www.w3.org/2000/svg" width="390" height="65">
-            <rect x="0" y="0" width="100%" height="100%" fill="#7890A7" stroke-width="20" stroke="#ffffff" ></rect>
-            <foreignObject x="15" y="10" width="100%" height="100%">
-            <div xmlns="http://www.w3.org/1999/xhtml" style="font-size:40px">
-             <em>I</em> am
-            <span style="color:white; text-shadow:0 0 20px #000000;">
-             HTML in SVG!</span>
-            </div>
-            </foreignObject>
-            </svg>
-'''            
+<svg xmlns="http://www.w3.org/2000/svg" width="150px" height="''' + str(table_height) + '''px">
+<rect x="0" y="0" width="100%" height="100%" fill="#ffffff" stroke-width="20" stroke="#ffffff" ></rect>
+    <foreignObject x="10" y="10" width="100%" height="100%">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="font-size:''' + str(row_height) + '''px">
+    <table> ''' + fields_table + ''' </table> 
+    </div>
+    </foreignObject>
+</svg>
+'''  
 
         edge_color = {'inherit': 'from'}
 
@@ -132,6 +129,7 @@ def dbmodel(request):
                 'label': label,
                 'imagesrc': imagesrc,
                 'shape': 'image',
+                'size':  table_height*1.8,
                 'group': model.app_label,
                 'title': get_template("dbmodel/dbnode.html").render(
                     Context({'model':model, 'fields':fields,})
